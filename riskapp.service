@@ -1,0 +1,13 @@
+[Unit]
+Description=Risk Reward Flask App
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/riskapp
+Environment="PATH=/var/www/riskapp/venv/bin"
+ExecStart=/var/www/riskapp/venv/bin/gunicorn --config gunicorn.conf.py wsgi:app
+
+[Install]
+WantedBy=multi-user.target

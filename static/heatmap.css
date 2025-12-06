@@ -1,0 +1,230 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-back {
+    padding: 8px 16px;
+    border: none;
+    background: white;
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.category-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    color: #666;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.heatmap-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.heatmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.heatmap-table thead th {
+    background: #f8f9fa;
+    padding: 12px 8px;
+    text-align: center;
+    border-bottom: 2px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+}
+
+.index-header-col {
+    width: 200px;
+    text-align: left !important;
+}
+
+.metric-header-col {
+    width: auto;
+}
+
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+}
+
+.header-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.sort-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.sort-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sort-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.sort-btn.active {
+    background: #4CAF50;
+    color: white;
+}
+
+.heatmap-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.heatmap-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.heatmap-table tbody td {
+    padding: 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.heatmap-table tbody td:first-child {
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a1a;
+    padding-left: 16px;
+}
+
+.metric-cell {
+    padding: 0;
+    text-align: center;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.metric-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.section-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* Color classes - Green theme */
+.green-dark { background: #007E6E; color: white; }
+.green-med { background: #10b981; color: white; }
+.green-light { background: #34d399; color: white; }
+.light-green { background: #73AF6F; color: white; }
+.yellow { background: #73AF6F; color: white; }
+.orange { background: #fca5a5; color: #1a1a1a; }
+.red-light { background: #fca5a5; color: #1a1a1a; }
+.red { background: #ef4444; color: white; }
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .category-title {
+        font-size: 20px;
+    }
+
+    .heatmap-container {
+        padding: 12px;
+    }
+
+    .index-row {
+        grid-template-columns: 120px repeat(4, 1fr);
+        gap: 4px;
+    }
+
+    .metric-cell {
+        font-size: 11px;
+        padding: 6px;
+    }
+}

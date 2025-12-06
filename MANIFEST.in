@@ -1,0 +1,3 @@
+include riskapp/data.csv
+include README.md
+include PACKAGE_USAGE.md
