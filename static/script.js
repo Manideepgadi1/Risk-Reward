@@ -9,7 +9,9 @@ const categories = {
 };
 
 // Get the base path from the current location
-const basePath = window.location.pathname.replace(/\/$/, '');
+// Remove trailing slash and extract the base path
+const currentPath = window.location.pathname;
+const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
 
 async function loadData() {
     const loading = document.getElementById('loading');
