@@ -8,6 +8,9 @@ const categories = {
     'Thematic': ['NICON', 'NIDEF', 'NIDIGI', 'NIIL', 'NIMFG', 'NCPSE', 'NENRGY', 'NEVNAA', 'NHOUS', 'N100ESG', 'N100ESGE', 'N100ESGSL', 'NINFRA', 'NTOUR', 'NINACON', 'NCHOUS', 'NMSICON', 'NMOBIL', 'NNCCON', 'NRURAL', 'NTRANS', 'NIINT', 'NPSE', 'NMNC', 'NREIT', 'NIPO', 'NSMEE', 'NIRLPSU', 'NBIRLA', 'NMAHIN', 'NTATA', 'NTATA25', 'NMAATR', 'NMF5032', 'NINF5032', 'NWAVES', 'DSPQ', 'DSP ELSS', 'KBIK CON', 'KBIK GOLD', 'AXISINVE', 'UTI FLEX', 'ICICI SIL', 'N10YRGS', 'NIFTY 10 YR BENCHMARK G-SEC.1']
 };
 
+// Get the base path from the current location
+const basePath = window.location.pathname.replace(/\/$/, '');
+
 async function loadData() {
     const loading = document.getElementById('loading');
     const container = document.getElementById('data-table-container');
@@ -17,7 +20,7 @@ async function loadData() {
         loading.classList.remove('hidden');
         container.classList.add('hidden');
         
-        const res = await fetch(`/api/metrics?duration=${duration}`);
+        const res = await fetch(`${basePath}/api/metrics?duration=${duration}`);
         if (!res.ok) throw new Error('Failed to fetch data');
         
         allData = await res.json();

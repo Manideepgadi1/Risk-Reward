@@ -1,3 +1,6 @@
+// Get the base path from the current location
+const basePath = window.location.pathname.split('?')[0].replace(/\/heatmap.*$/, '');
+
 // Category mappings - using short names that match the CSV columns
 const categories = {
     'Broad': ['N50', 'NN50', 'N100', 'N200', 'NTOTLM', 'N500', 'NMC5025', 'N500EQ', 'NMC150', 'NMC50', 'NMCSEL', 'NMC100', 'NSC250', 'NSC50', 'NSC100', 'NMICRO', 'NLMC250', 'NMSC400', 'NT10EWT', 'NT15EWT', 'NT20EWT', 'N50EQWGT', 'NIFTY500 EQUAL WEIGHT.1'],
@@ -36,7 +39,7 @@ async function loadIndexHeatmap(indexName) {
         const mode = document.getElementById('return-mode')?.value || 'trailing';
         const timeline = document.getElementById('timeline')?.value || '3';
         const cacheBuster = new Date().getTime();
-        const res = await fetch(`/api/heatmap_data?index=${encodeURIComponent(indexName)}&duration=all&mode=${mode}&timeline=${timeline}&_=${cacheBuster}`);
+        const res = await fetch(`${basePath}/api/heatmap_data?index=${encodeURIComponent(indexName)}&duration=all&mode=${mode}&timeline=${timeline}&_=${cacheBuster}`);
         if (!res.ok) throw new Error('Failed to fetch heatmap data');
         
         const data = await res.json();
@@ -55,7 +58,7 @@ async function loadIndexHeatmap(indexName) {
 // Load category table view
 async function loadCategoryTable(category) {
     try {
-        const res = await fetch(`/api/metrics?duration=3years`);
+        const res = await fetch(`${basePath}/api/metrics?duration=3years`);
         if (!res.ok) throw new Error('Failed to fetch data');
         
         const allData = await res.json();
