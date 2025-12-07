@@ -11,8 +11,11 @@ const categories = {
 // Get the base path from the current location
 const pathParts = window.location.pathname.split('/').filter(Boolean);
 let basePath = '';
-if (pathParts.length > 0 && pathParts[0].toLowerCase() === 'risk-reward') {
-    basePath = '/risk-reward';
+if (pathParts.length > 0) {
+    const firstPath = pathParts[0].toLowerCase();
+    if (firstPath === 'risk-reward' || firstPath === 'riskreward') {
+        basePath = '/' + pathParts[0]; // Use the actual case from URL
+    }
 }
 
 async function loadData() {
