@@ -123,10 +123,10 @@ function renderMonthlyHeatmap(data) {
             <h3 style="font-size: 14px; font-weight: 600; color: #628141; margin-bottom: 12px;">📊 FORMULA USED:</h3>
             <div style="font-family: 'Courier New', monospace; font-size: 13px; color: #333; line-height: 1.8;">
                 ${data.mode === 'trailing' 
-                    ? `<strong>Trailing Return:</strong><br>
-                       ((Current_Price - Price_${data.timeline}_Years_Ago) / Price_${data.timeline}_Years_Ago) × 100<br>
+                    ? `<strong>Trailing Return (Annualized):</strong><br>
+                       ((Current_Price / Price_${data.timeline}_Years_Ago)^(1/${data.timeline}) - 1) × 100<br>
                        <span style="font-size: 11px; color: #666; font-family: sans-serif;">
-                       Shows: How much return in the last ${data.timeline} years up to this month
+                       Shows: Annualized return in the last ${data.timeline} years up to this month
                        </span>`
                     : `<strong>Rolling Return (Annualized):</strong><br>
                        ((Price_${data.timeline}_Years_After / Current_Price)^(1/${data.timeline}) - 1) × 100<br>

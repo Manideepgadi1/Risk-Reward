@@ -152,7 +152,7 @@ body {
 
 .metric-headers {
     display: grid;
-    grid-template-columns: repeat(5, 52px);
+    grid-template-columns: repeat(4, 65px);
     gap: 5px;
     text-align: center;
     justify-content: flex-end;
@@ -229,7 +229,7 @@ body {
 
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(5, 52px);
+    grid-template-columns: repeat(4, 65px);
     gap: 5px;
     flex-shrink: 0;
 }

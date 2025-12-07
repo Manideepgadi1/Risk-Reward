@@ -80,20 +80,17 @@ function renderTable(data) {
                 
                 // Ret
                 const retCell = createMetricCell(item.Ret, 'ret', 'Return');
-                // V1
-                const v1Cell = createMetricCell(item.V1, 'v1', 'V1');
                 // Risk
                 const riskCell = createMetricCell(item.Risk, 'risk', 'Risk');
-                // AbsMom
-                const absMomCell = createMetricCell(item.AbsMom, 'absmom', 'Absolute Momentum');
-                // Mom
-                const momCell = createMetricCell(item.Momentum, 'mom', 'Momentum');
+                // V1
+                const v1Cell = createMetricCell(item.V1, 'v1', 'V1');
+                // RMom
+                const rmomCell = createMetricCell(item.RMom, 'rmom', 'Relative Momentum');
                 
                 metricsGrid.appendChild(retCell);
-                metricsGrid.appendChild(v1Cell);
                 metricsGrid.appendChild(riskCell);
-                metricsGrid.appendChild(absMomCell);
-                metricsGrid.appendChild(momCell);
+                metricsGrid.appendChild(v1Cell);
+                metricsGrid.appendChild(rmomCell);
                 
                 indexRow.appendChild(nameCell);
                 indexRow.appendChild(metricsGrid);
@@ -116,22 +113,15 @@ function createMetricCell(value, type, label) {
 }
 
 function getColorClass(value, type) {
-    if (type === 'mom') {
-        // Momentum: Higher is better (green), lower/negative is worse (red)
-        if (value >= 20) return 'green-dark';
-        if (value >= 10) return 'light-green';
-        if (value >= 0) return 'yellow';
-        if (value >= -10) return 'orange';
-        return 'red';
-    }
-    
-    if (type === 'absmom') {
-        // Absolute Momentum: Higher is better (green), lower/negative is worse (red)
+    if (type === 'rmom') {
+        // Relative Momentum: Lower is better (green), higher is worse (red)
+        // Because RMom = SD / Momentum, lower values mean stronger momentum
         if (value === null || value === undefined) return '';
-        if (value >= 30) return 'green-dark';
-        if (value >= 20) return 'light-green';
-        if (value >= 10) return 'yellow';
-        if (value >= 0) return 'orange';
+        const absValue = Math.abs(value);
+        if (absValue <= 0.5) return 'green-dark';
+        if (absValue <= 1) return 'light-green';
+        if (absValue <= 2) return 'yellow';
+        if (absValue <= 5) return 'orange';
         return 'red';
     }
     
@@ -220,12 +210,9 @@ function sortCategory(category, metric) {
         } else if (metric === 'risk') {
             valA = itemA.Risk;
             valB = itemB.Risk;
-        } else if (metric === 'absmom') {
-            valA = itemA.AbsMom !== null ? itemA.AbsMom : -999;
-            valB = itemB.AbsMom !== null ? itemB.AbsMom : -999;
-        } else if (metric === 'mom') {
-            valA = itemA.Momentum;
-            valB = itemB.Momentum;
+        } else if (metric === 'rmom') {
+            valA = itemA.RMom !== null ? itemA.RMom : 999;
+            valB = itemB.RMom !== null ? itemB.RMom : 999;
         }
         
         return sortState[category].ascending 

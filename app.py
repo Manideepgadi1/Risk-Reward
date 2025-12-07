@@ -99,24 +99,43 @@ def calculate_metrics(duration='all'):
         if momentum_12m is not None and not np.isfinite(momentum_12m):
             momentum_12m = None
         
-        # 5. Calculate 3-year simple return for V1 ranking (will be ranked later)
-        # Return = (Current Price - Price 3 Years Ago) / Price 3 Years Ago * 100
-        return_3y = None
+        # 5. Calculate V1: 3-year avg monthly return ranked within 4-year monthly returns
+        v1_value = None
         
         latest_date = full_prices.index.max()
-        latest_value = full_prices.iloc[-1]
         
-        # Find value 3 years ago
-        target_date_3y_ago = latest_date - pd.DateOffset(years=3)
-        dates_before_target = full_prices.index[full_prices.index <= target_date_3y_ago]
+        # Get last 4 years of data
+        four_year_cutoff = latest_date - pd.DateOffset(years=4)
+        four_year_prices = full_prices[full_prices.index >= four_year_cutoff]
         
-        if len(dates_before_target) > 0:
-            closest_date_3y_ago = dates_before_target[-1]
-            value_3y_ago = full_prices.loc[closest_date_3y_ago]
+        if len(four_year_prices) > 1:
+            # Resample to monthly prices for 4 years
+            monthly_prices_4y = four_year_prices.resample('M').last().dropna()
             
-            if value_3y_ago > 0:
-                # Simple Return = (Current - Past) / Past * 100
-                return_3y = ((latest_value - value_3y_ago) / value_3y_ago) * 100
+            if len(monthly_prices_4y) > 1:
+                # Calculate ALL monthly returns in 4 years
+                monthly_returns_4y = monthly_prices_4y.pct_change().dropna() * 100  # as percentage
+                
+                # Step 1: Calculate 3-year average monthly return
+                three_year_cutoff = latest_date - pd.DateOffset(years=3)
+                monthly_prices_3y = monthly_prices_4y[monthly_prices_4y.index >= three_year_cutoff]
+                
+                if len(monthly_prices_3y) > 1:
+                    monthly_returns_3y = monthly_prices_3y.pct_change().dropna() * 100
+                    
+                    if len(monthly_returns_3y) > 0:
+                        # Average monthly return over 3 years
+                        avg_monthly_return_3y = monthly_returns_3y.sum() / len(monthly_returns_3y)
+                        
+                        # Step 2: Rank this average within ALL 4-year monthly returns
+                        if len(monthly_returns_4y) > 0:
+                            returns_below = (monthly_returns_4y < avg_monthly_return_3y).sum()
+                            total_returns = len(monthly_returns_4y)
+                            
+                            if total_returns > 1:
+                                v1_value = returns_below / (total_returns - 1)
+                            elif total_returns == 1:
+                                v1_value = 0.5
         
         # 6. Calculate Average Monthly Profit (4 years)
         # = Sum of all monthly returns in last 4 years / Number of months
@@ -137,70 +156,32 @@ def calculate_metrics(duration='all'):
                     # Average = Sum of monthly returns / Number of months
                     avg_monthly_profit_4y = monthly_returns.sum() / len(monthly_returns)
         
-        # 7. Mean (average of return and risk)
-        mean = (cagr * 100 + risk * 100) / 2
-        
         results.append({
             "Index Name": col,
             "Ret": round(cagr * 100, 1),
-            "Return_3y": return_3y,  # Will be used for V1 ranking
-            "AvgMonthlyProfit_4y": round(avg_monthly_profit_4y, 2) if avg_monthly_profit_4y is not None else None,
             "Risk": round(risk, 1),  # Std * 3.45
-            "Mean": round(mean, 1),
-            "Momentum_12m": momentum_12m  # Store raw 12-month return
+            "V1": round(v1_value, 3) if v1_value is not None else None,
+            "Momentum_12m": momentum_12m  # Store raw 12-month return for RMom calculation
         })
     
-    # Calculate V1: Percentile based on 3-year simple return across ALL indices
-    # Step 1: Get all valid 3-year returns and sort
-    valid_return_3y = [(i, r['Return_3y']) for i, r in enumerate(results) if r['Return_3y'] is not None]
+    # V1 is now calculated per-index above, no cross-index comparison needed
     
-    # Sort by return value to get ranks
-    sorted_returns = sorted(valid_return_3y, key=lambda x: x[1])
-    
-    # Create rank mapping
-    rank_map = {}
-    for rank, (idx, val) in enumerate(sorted_returns, start=1):
-        rank_map[idx] = rank
-    
-    for i, result in enumerate(results):
-        if result['Return_3y'] is not None and len(valid_return_3y) > 1:
-            # Get rank (1 = lowest, n = highest)
-            rank = rank_map[i]
-            total = len(valid_return_3y)
-            
-            # Percentile = (rank - 1) / (total - 1)
-            percentile = (rank - 1) / (total - 1)
-            
-            result['V1'] = round(percentile, 3)
-        else:
-            result['V1'] = None
-        
-        # Remove temporary field
-        del result['Return_3y']
-    
-    # Calculate momentum ratio (z-score) and absolute momentum after collecting all 12-month returns
+    # Calculate Relative Momentum (RMom) after collecting all 12-month returns
     valid_momentum_12m = [r['Momentum_12m'] for r in results if r['Momentum_12m'] is not None]
     
     if len(valid_momentum_12m) > 1:
-        avg_momentum = np.mean(valid_momentum_12m)
         sd_momentum = np.std(valid_momentum_12m, ddof=1)
         
         for result in results:
-            if result['Momentum_12m'] is not None and sd_momentum > 0:
-                # Momentum ratio = (momentum - avg_momentum) / sd_momentum
-                momentum_ratio = (result['Momentum_12m'] - avg_momentum) / sd_momentum
-                result['Momentum'] = round(momentum_ratio, 2)
-                
-                # Absolute Momentum = momentum / sd_momentum
-                abs_momentum = result['Momentum_12m'] / sd_momentum
-                result['AbsMom'] = round(abs_momentum, 2)
+            if result['Momentum_12m'] is not None and result['Momentum_12m'] != 0 and sd_momentum > 0:
+                # Relative Momentum = Standard Deviation / Momentum
+                relative_momentum = sd_momentum / result['Momentum_12m']
+                result['RMom'] = round(relative_momentum, 2)
             else:
-                result['Momentum'] = None
-                result['AbsMom'] = None
+                result['RMom'] = None
     else:
         for result in results:
-            result['Momentum'] = None
-            result['AbsMom'] = None
+            result['RMom'] = None
     
     # Remove temporary Momentum_12m field
     for result in results:
@@ -295,13 +276,13 @@ def api_heatmap_data():
         # Calculate return based on mode
         if mode == 'trailing':
             # Trailing: Look BACK X years from this month
-            # Formula: (Current Price - Price X years ago) / Price X years ago * 100
+            # Formula: ((Current Price - Price X years ago) / Price X years ago)^(1/n) * 100
             if i >= lookback_months:
                 past_price = monthly_prices.iloc[i - lookback_months]
                 if past_price > 0 and pd.notna(price) and pd.notna(past_price):
-                    # Simple return (not annualized)
-                    simple_return = ((price - past_price) / past_price) * 100
-                    heatmap_data[year][month] = float(simple_return)
+                    # Annualized return: ((Current - Past) / Past + 1)^(1/years) - 1
+                    annualized_return = (((price / past_price) ** (1.0 / timeline)) - 1.0) * 100
+                    heatmap_data[year][month] = float(annualized_return)
                 else:
                     heatmap_data[year][month] = None
             else:
