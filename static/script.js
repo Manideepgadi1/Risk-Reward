@@ -163,12 +163,12 @@ function getColorClass(value, type) {
 
 function showDetails(item) {
     // Navigate to heatmap page
-    window.location.href = `/heatmap?index=${encodeURIComponent(item['Index Name'])}`;
+    window.location.href = `${basePath}/heatmap?index=${encodeURIComponent(item['Index Name'])}`;
 }
 
 function viewCategoryHeatmap(category) {
     // Navigate to heatmap page for entire category
-    window.location.href = `/heatmap?category=${encodeURIComponent(category)}`;
+    window.location.href = `${basePath}/heatmap?category=${encodeURIComponent(category)}`;
 }
 
 window.viewCategoryHeatmap = viewCategoryHeatmap;
