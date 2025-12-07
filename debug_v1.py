@@ -77,11 +77,18 @@ for start_date in valid_start_dates[:5]:  # Show first 5
         end_date = dates_after_target[0]
         start_value = prices.asof(start_date)
         end_value = prices.asof(end_date)
-        
-        if start_value > 0:
-            hist_4y_perf = ((end_value / start_value) ** (1.0 / 4.0) - 1.0) * 100
-            historical_4y_perfs.append(hist_4y_perf)
-            print(f'  {start_date.date()} -> {end_date.date()}: {hist_4y_perf:.2f}%')
+        # Extract scalar if Series
+        if isinstance(start_value, pd.Series):
+            start_value = start_value.values[0]
+        if isinstance(end_value, pd.Series):
+            end_value = end_value.values[0]
+        if isinstance(start_value, (int, float, np.integer, np.floating)) and isinstance(end_value, (int, float, np.integer, np.floating)):
+            sv = float(start_value)
+            ev = float(end_value)
+            if sv > 0:
+                hist_4y_perf = ((ev / sv) ** (1.0 / 4.0) - 1.0) * 100
+                historical_4y_perfs.append(hist_4y_perf)
+                print(f'  {start_date.date()} -> {end_date.date()}: {hist_4y_perf:.2f}%')
 
 print(f'\nTotal historical 4Y perfs: {len(historical_4y_perfs)}')
 

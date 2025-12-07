@@ -3,27 +3,22 @@ import pandas as pd
 import numpy as np
 import os
 
-# Support deployment under a URL prefix
+# Support deployment under a URL prefix - reads from X-Forwarded-Prefix header
 class PrefixMiddleware(object):
-    def __init__(self, app, prefix=''):
+    def __init__(self, app):
         self.app = app
-        self.prefix = prefix
 
     def __call__(self, environ, start_response):
-        if environ['PATH_INFO'].startswith(self.prefix):
-            environ['PATH_INFO'] = environ['PATH_INFO'][len(self.prefix):]
-            environ['SCRIPT_NAME'] = self.prefix
-            return self.app(environ, start_response)
-        else:
-            start_response('404', [('Content-Type', 'text/plain')])
-            return [b'Not Found']
+        # Check for X-Forwarded-Prefix header from nginx
+        prefix = environ.get('HTTP_X_FORWARDED_PREFIX', '')
+        if prefix:
+            environ['SCRIPT_NAME'] = prefix
+        return self.app(environ, start_response)
 
 app = Flask(__name__)
 
-# Apply prefix middleware if APP_PREFIX is set
-APP_PREFIX = os.environ.get('APP_PREFIX', '')
-if APP_PREFIX:
-    app.wsgi_app = PrefixMiddleware(app.wsgi_app, prefix=APP_PREFIX)
+# Always apply prefix middleware to support nginx proxy
+app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 
 # Use relative path for production deployment
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -296,13 +291,13 @@ def api_heatmap_data():
         # Calculate return based on mode
         if mode == 'trailing':
             # Trailing: Look BACK X years from this month
-            # Formula: (Current Price - Price X years ago) / Price X years ago * 100
+            # Formula: ((Current Price - Price X years ago) / Price X years ago)^(1/n) * 100
             if i >= lookback_months:
                 past_price = monthly_prices.iloc[i - lookback_months]
                 if past_price > 0 and pd.notna(price) and pd.notna(past_price):
-                    # Simple return (not annualized)
-                    simple_return = ((price - past_price) / past_price) * 100
-                    heatmap_data[year][month] = float(simple_return)
+                    # Annualized return: ((Current - Past) / Past + 1)^(1/years) - 1
+                    annualized_return = (((price / past_price) ** (1.0 / timeline)) - 1.0) * 100
+                    heatmap_data[year][month] = float(annualized_return)
                 else:
                     heatmap_data[year][month] = None
             else:
