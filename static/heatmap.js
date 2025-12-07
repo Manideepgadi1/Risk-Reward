@@ -1,10 +1,9 @@
 // Get the base path from the current location
-// Extract base path by removing trailing slash and any file paths
-let basePath = window.location.pathname.split('?')[0];
-if (basePath.includes('/heatmap')) {
-    basePath = basePath.substring(0, basePath.indexOf('/heatmap'));
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+let basePath = '';
+if (pathParts.length > 0 && pathParts[0].toLowerCase() === 'risk-reward') {
+    basePath = '/risk-reward';
 }
-basePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
 
 // Category mappings - using short names that match the CSV columns
 const categories = {

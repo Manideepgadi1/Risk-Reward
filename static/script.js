@@ -9,9 +9,11 @@ const categories = {
 };
 
 // Get the base path from the current location
-// Remove trailing slash and extract the base path
-const currentPath = window.location.pathname;
-const basePath = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+let basePath = '';
+if (pathParts.length > 0 && pathParts[0].toLowerCase() === 'risk-reward') {
+    basePath = '/risk-reward';
+}
 
 async function loadData() {
     const loading = document.getElementById('loading');
