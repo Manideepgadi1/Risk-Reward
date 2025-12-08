@@ -24,13 +24,16 @@ async function loadData() {
     const duration = document.getElementById('duration').value;
 
     try {
+        loading.textContent = 'Loading data...';
         loading.classList.remove('hidden');
         container.classList.add('hidden');
         
+        console.log('Fetching data for duration:', duration);
         const res = await fetch(`${basePath}/api/metrics?duration=${duration}`);
         if (!res.ok) throw new Error('Failed to fetch data');
         
         allData = await res.json();
+        console.log('Data loaded:', allData.length, 'items');
         
         loading.classList.add('hidden');
         container.classList.remove('hidden');
@@ -293,8 +296,16 @@ window.toggleColumn = toggleColumn;
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     
-    document.getElementById('duration').addEventListener('change', (e) => {
-        console.log('Duration changed to:', e.target.value);
-        loadData(); // Reload data with new duration
-    });
+    const durationSelect = document.getElementById('duration');
+    if (durationSelect) {
+        durationSelect.addEventListener('change', (e) => {
+            console.log('Duration changed to:', e.target.value);
+            // Clear existing data
+            allData = [];
+            const tbody = document.getElementById('table-body');
+            if (tbody) tbody.innerHTML = '';
+            // Reload data with new duration
+            loadData();
+        });
+    }
 });
