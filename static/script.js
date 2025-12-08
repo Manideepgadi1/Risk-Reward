@@ -256,6 +256,40 @@ function searchIndices() {
 
 window.searchIndices = searchIndices;
 
+function toggleColumn(columnType) {
+    const isVisible = document.getElementById(`toggle-${columnType}`).checked;
+    const metricCells = document.querySelectorAll(`.metric-cell[data-tooltip*="${columnType === 'v1' ? 'V1' : 'Relative Momentum'}"]`);
+    const headerSpans = document.querySelectorAll(`.sortable[onclick*="${columnType}"]`);
+    
+    metricCells.forEach(cell => {
+        cell.style.display = isVisible ? '' : 'none';
+    });
+    
+    headerSpans.forEach(span => {
+        span.style.display = isVisible ? '' : 'none';
+    });
+    
+    // Adjust metrics grid to only show visible columns
+    const metricsGrids = document.querySelectorAll('.metrics-grid');
+    metricsGrids.forEach(grid => {
+        const visibleColumns = 2 + 
+            (document.getElementById('toggle-v1').checked ? 1 : 0) + 
+            (document.getElementById('toggle-rmom').checked ? 1 : 0);
+        grid.style.gridTemplateColumns = `repeat(${visibleColumns}, 1fr)`;
+    });
+    
+    // Adjust header metrics
+    const metricHeaders = document.querySelectorAll('.metric-headers');
+    metricHeaders.forEach(header => {
+        const visibleColumns = 2 + 
+            (document.getElementById('toggle-v1').checked ? 1 : 0) + 
+            (document.getElementById('toggle-rmom').checked ? 1 : 0);
+        header.style.gridTemplateColumns = `repeat(${visibleColumns}, 1fr)`;
+    });
+}
+
+window.toggleColumn = toggleColumn;
+
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     

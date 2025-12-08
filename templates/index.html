@@ -17,6 +17,16 @@
                     <option value="all">All Time</option>
                 </select>
                 <input type="text" id="search-box" placeholder="Search indices..." onkeyup="searchIndices()">
+                <div class="column-toggles">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggle-v1" checked onchange="toggleColumn('v1')">
+                        <span>V1</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggle-rmom" checked onchange="toggleColumn('rmom')">
+                        <span>RMom</span>
+                    </label>
+                </div>
                 <span class="note">Click any index name to view its metrics</span>
             </div>
         </div>
