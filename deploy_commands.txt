@@ -1,0 +1,6 @@
+cd /root/Risk-Reward
+git pull origin main
+pip3 install -r requirements.txt
+systemctl restart risk-reward.service
+systemctl status risk-reward.service
+exit

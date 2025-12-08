@@ -140,12 +140,22 @@ body {
     padding: 25px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     overflow-x: auto;
+    overflow-y: visible;
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
+    min-width: 1200px;
+}
+
+.data-table thead th {
+    width: 25%;
+}
+
+.data-table thead tr {
+    display: table-row;
 }
 
 .data-table thead th {
@@ -153,6 +163,7 @@ body {
     padding: 0;
     border-right: 2px solid #dee2e6;
     vertical-align: top;
+    display: table-cell;
 }
 
 .data-table thead th:last-child {
@@ -160,19 +171,22 @@ body {
 }
 
 .category-header {
-    padding: 12px 10px;
+    padding: 15px 12px;
+    display: block;
+    width: 25%;
+    min-width: 350px;
 }
 
 .category-name {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    color: #333;
-    margin-bottom: 10px;
+    color: #2c3e50;
+    margin-bottom: 12px;
     text-align: left;
-    padding-left: 4px;
+    padding-left: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     cursor: pointer;
     transition: color 0.2s;
 }
@@ -187,18 +201,27 @@ body {
 }
 
 .metric-headers {
-    display: grid;
-    grid-template-columns: repeat(4, 65px);
+    display: flex;
+    flex-direction: row;
     gap: 5px;
     text-align: center;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 98px;
+    margin-bottom: 8px;
 }
 
 .metric-headers span {
     font-size: 11px;
-    font-weight: 600;
-    color: #666;
-    padding: 4px 0;
+    font-weight: 700;
+    color: #555;
+    padding: 6px 0;
+    background: #f0f0f0;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    width: 62px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .metric-headers span.sortable {
@@ -234,9 +257,10 @@ body {
 .index-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     margin-bottom: 6px;
     padding: 0;
+    gap: 8px;
 }
 
 .index-row:last-child {
@@ -245,17 +269,18 @@ body {
 
 .index-name-cell {
     font-size: 13px;
-    font-weight: 400;
+    font-weight: 500;
     color: #333;
     cursor: pointer;
     transition: all 0.2s;
-    flex: 1;
-    max-width: 150px;
+    width: 90px;
+    min-width: 90px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 8px;
     text-align: left;
+    flex-shrink: 0;
+    margin-right: 8px;
 }
 
 .index-name-cell:hover {
@@ -264,24 +289,25 @@ body {
 }
 
 .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 65px);
+    display: flex;
+    flex-direction: row;
     gap: 5px;
     flex-shrink: 0;
+    align-items: center;
 }
 
 .metric-cell {
     text-align: center;
     padding: 0;
     border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 700;
     color: white;
     transition: all 0.2s;
     cursor: default;
     position: relative;
-    width: 52px;
-    height: 32px;
+    width: 62px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
