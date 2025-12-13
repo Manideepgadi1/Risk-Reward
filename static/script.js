@@ -120,14 +120,12 @@ function createMetricCell(value, type, label) {
 
 function getColorClass(value, type) {
     if (type === 'rmom') {
-        // Relative Momentum: Lower is better (green), higher is worse (red)
-        // Because RMom = SD / Momentum, lower values mean stronger momentum
+        // RMom: 80-100 is GREEN (best), 10-20 is RED (worst)
         if (value === null || value === undefined) return '';
-        const absValue = Math.abs(value);
-        if (absValue <= 0.5) return 'green-dark';
-        if (absValue <= 1) return 'light-green';
-        if (absValue <= 2) return 'yellow';
-        if (absValue <= 5) return 'orange';
+        if (value >= 80) return 'green-dark';
+        if (value >= 60) return 'light-green';
+        if (value >= 40) return 'yellow';
+        if (value >= 20) return 'orange';
         return 'red';
     }
     
@@ -147,11 +145,11 @@ function getColorClass(value, type) {
         if (value >= 0.2) return 'orange';
         return 'red';
     } else if (type === 'risk') {
-        // Risk (Std * 3.45): Lower is better (green), higher is worse (red)
-        if (value <= 35) return 'green-dark';
-        if (value <= 50) return 'light-green';
-        if (value <= 65) return 'yellow';
-        if (value <= 80) return 'orange';
+        // Risk: 80-100 is GREEN (best), 10-20 is RED (worst)
+        if (value >= 80) return 'green-dark';
+        if (value >= 60) return 'light-green';
+        if (value >= 40) return 'yellow';
+        if (value >= 20) return 'orange';
         return 'red';
     }
     return '';

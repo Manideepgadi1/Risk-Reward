@@ -101,6 +101,23 @@ function renderMonthlyHeatmap(data) {
     const modeText = mode === 'trailing' ? 'Trailing' : 'Rolling';
     const titleText = `${modeText} ${timeline}-Year Returns Heatmap`;
     
+    // Calculate min and max values from the data FIRST before using in template
+    const heatmapData = data.heatmapData;
+    const years = Object.keys(heatmapData).sort((a, b) => b - a);
+    
+    let minValue = Infinity;
+    let maxValue = -Infinity;
+    
+    years.forEach(year => {
+        for (let month = 1; month <= 12; month++) {
+            const value = heatmapData[year]?.[month.toString()];
+            if (value !== null && value !== undefined) {
+                minValue = Math.min(minValue, value);
+                maxValue = Math.max(maxValue, value);
+            }
+        }
+    });
+    
     const container = document.getElementById('heatmap-container');
     container.innerHTML = `
         <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">${data.indexName}</h1>
@@ -137,14 +154,14 @@ function renderMonthlyHeatmap(data) {
                        Shows: Annualized return if you invested at this month for ${data.timeline} years
                        </span>`
                 }<br><br>
-                <strong>Color Legend:</strong><br>
-                <span style="background: #628141; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">&gt; 30%</span>
-                <span style="background: #8BAE66; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">20-30%</span>
-                <span style="background: #A3D78A; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">10-20%</span>
-                <span style="background: #C1E59F; color: #333; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">0-10%</span>
-                <span style="background: #EBD5AB; color: #333; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">0 to -10%</span>
-                <span style="background: #FF937E; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">-10 to -30%</span>
-                <span style="background: #FF5555; color: white; padding: 2px 8px; border-radius: 4px;">&lt; -30%</span>
+                <strong>Color Legend (Dynamic Range):</strong><br>
+                <span style="font-size: 11px; color: #666;">Colors automatically scale from lowest (${minValue.toFixed(1)}%) to highest (${maxValue.toFixed(1)}%) in the data</span><br>
+                <span style="background: #1e8000; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">Highest</span>
+                <span style="background: #33db00; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">High</span>
+                <span style="background: #d97b00; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">Above Mid</span>
+                <span style="background: #f5ce42; color: #333; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">Mid</span>
+                <span style="background: #f27474; color: white; padding: 2px 8px; border-radius: 4px; margin-right: 8px;">Low</span>
+                <span style="background: #ff0000; color: white; padding: 2px 8px; border-radius: 4px;">Lowest</span>
             </div>
         </div>
         
@@ -154,15 +171,14 @@ function renderMonthlyHeatmap(data) {
     `;
     
     const grid = document.getElementById('heatmap-grid');
-    const heatmapData = data.heatmapData;
     
     console.log('Full data received:', data);
     console.log('HeatmapData keys:', Object.keys(heatmapData));
-    
-    const years = Object.keys(heatmapData).sort((a, b) => b - a);
-    
     console.log('Heatmap data years:', years);
     console.log('Total years:', years.length);
+
+    
+    console.log('Value range:', minValue, 'to', maxValue);
     
     // Header row
     const yearHeader = document.createElement('div');
@@ -200,7 +216,7 @@ function renderMonthlyHeatmap(data) {
             if (value !== null && value !== undefined) {
                 const percentage = value;  // Value is already a percentage from backend
                 cell.textContent = (percentage >= 0 ? '+' : '') + percentage.toFixed(1) + '%';
-                cell.style.background = getMonthlyReturnColor(percentage);
+                cell.style.background = getMonthlyReturnColor(percentage, minValue, maxValue);
                 cell.style.color = Math.abs(percentage) > 3 ? 'white' : '#333';
             } else {
                 cell.textContent = '-';
@@ -222,16 +238,25 @@ function renderMonthlyHeatmap(data) {
     });
 }
 
-function getMonthlyReturnColor(percentage) {
-    // Red shades for negative returns
-    if (percentage <= -30) return '#FF5555';  // Bright red (< -30%)
-    if (percentage <= -10) return '#FF937E';  // Light red (-30% to -10%)
-    if (percentage <= 0) return '#EBD5AB';    // Beige (0% to -10%)
-    // Green shades for positive returns
-    if (percentage <= 10) return '#C1E59F';   // Light green (0% to 10%)
-    if (percentage <= 20) return '#A3D78A';   // Medium green (10% to 20%)
-    if (percentage <= 30) return '#8BAE66';   // Forest green (20% to 30%)
-    return '#628141';                          // Dark green (> 30%)
+function getMonthlyReturnColor(percentage, minValue, maxValue) {
+    // Dynamic color scaling based on actual data range
+    const range = maxValue - minValue;
+    
+    // If range is very small, use neutral color
+    if (range < 1) {
+        return '#f5f5f5';
+    }
+    
+    // Calculate normalized position (0 to 1) within the range
+    const normalized = (percentage - minValue) / range;
+    
+    // Use a 6-color gradient from red (low) to green (high)
+    if (normalized <= 0.17) return '#ff0000';  // RED (lowest values)
+    if (normalized <= 0.33) return '#f27474';  // LIGHT RED
+    if (normalized <= 0.50) return '#f5ce42';  // YELLOW (middle-low)
+    if (normalized <= 0.67) return '#d97b00';  // ORANGE (middle-high)
+    if (normalized <= 0.83) return '#33db00';  // LIGHT GREEN
+    return '#1e8000';                           // GREEN (highest values)
 }
 
 // Get color class based on metric value and type
@@ -262,18 +287,18 @@ function getColorClass(value, type) {
         if (numValue >= 0) return 'orange';
         return 'red';
     } else if (type === 'risk') {
-        // Risk (Std * 3.45): Lower is better
-        if (numValue <= 35) return 'green-dark';
-        if (numValue <= 50) return 'light-green';
-        if (numValue <= 65) return 'yellow';
-        if (numValue <= 80) return 'orange';
+        // Risk: 80-100 is GREEN (best), 10-20 is RED (worst)
+        if (numValue >= 80) return 'green-dark';
+        if (numValue >= 60) return 'light-green';
+        if (numValue >= 40) return 'yellow';
+        if (numValue >= 20) return 'orange';
         return 'red';
-    } else if (type === 'mom') {
-        // Momentum: Higher is better
-        if (numValue >= 20) return 'green-dark';
-        if (numValue >= 10) return 'light-green';
-        if (numValue >= 0) return 'yellow';
-        if (numValue >= -10) return 'orange';
+    } else if (type === 'rmom') {
+        // RMom: 80-100 is GREEN (best), 10-20 is RED (worst)
+        if (numValue >= 80) return 'green-dark';
+        if (numValue >= 60) return 'light-green';
+        if (numValue >= 40) return 'yellow';
+        if (numValue >= 20) return 'orange';
         return 'red';
     }
     
@@ -328,8 +353,8 @@ function renderCategoryTable(data) {
         // Momentum cell
         const momTd = document.createElement('td');
         const momCell = document.createElement('div');
-        momCell.className = `metric-cell ${getColorClass(item.Momentum, 'mom')}`;
-        momCell.textContent = item.Momentum;
+        momCell.className = `metric-cell ${getColorClass(item.RMom, 'rmom')}`;
+        momCell.textContent = item.RMom;
         momTd.appendChild(momCell);
         tr.appendChild(momTd);
         
@@ -371,8 +396,8 @@ function sortTable(column) {
             valA = a.AbsMom !== null ? a.AbsMom : -999;
             valB = b.AbsMom !== null ? b.AbsMom : -999;
         } else if (column === 'mom') {
-            valA = a.Momentum;
-            valB = b.Momentum;
+            valA = a.RMom;
+            valB = b.RMom;
         }
         
         return currentSort.ascending 

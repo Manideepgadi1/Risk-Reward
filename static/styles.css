@@ -95,6 +95,7 @@ body {
     font-size: 14px;
     font-weight: 500;
     color: #555;
+    -webkit-user-select: none;
     user-select: none;
     transition: color 0.2s;
 }
@@ -240,6 +241,7 @@ body {
     opacity: 0.5;
     margin-left: 2px;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
 }
 

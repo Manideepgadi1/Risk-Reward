@@ -12,11 +12,11 @@
             <button class="btn-back" onclick="window.history.back()">← Back</button>
             <h1 id="category-title" class="category-title"></h1>
             <div style="display: flex; gap: 10px;">
-                <select id="return-mode" class="duration-selector">
+                <select id="return-mode" class="duration-selector" title="Select return calculation mode" aria-label="Return mode selector">
                     <option value="trailing" selected>Trailing Returns</option>
                     <option value="rolling">Rolling Returns</option>
                 </select>
-                <select id="timeline" class="duration-selector">
+                <select id="timeline" class="duration-selector" title="Select timeline period" aria-label="Timeline selector">
                     <option value="1">1 Year</option>
                     <option value="3" selected>3 Years</option>
                     <option value="3.5">3.5 Years</option>
@@ -67,6 +67,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='heatmap.js') }}?v=9"></script>
+    <script src="{{ url_for('static', filename='heatmap.js') }}?v=100"></script>
 </body>
 </html>
