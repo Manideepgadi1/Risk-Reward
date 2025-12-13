@@ -23,6 +23,98 @@ app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 # Use relative path for production deployment
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data.csv")
+V1_XLSX_PATH = os.path.join(BASE_DIR, "V1.xlsx")
+
+# Load V1 values from Excel at startup
+def load_v1_values():
+    """Load V1 average values from V1.xlsx and calculate percentile ranks"""
+    try:
+        df_v1 = pd.read_excel(V1_XLSX_PATH)
+        # Create a dictionary of index name to AverageValue
+        v1_dict = dict(zip(df_v1['Name'], df_v1['AverageValue']))
+        
+        # Calculate percentile ranks based on AverageValue
+        sorted_values = sorted(v1_dict.items(), key=lambda x: x[1])
+        n = len(sorted_values)
+        
+        v1_percentile = {}
+        for rank, (name, value) in enumerate(sorted_values):
+            if n > 1:
+                percentile = rank / (n - 1)  # 0 to 1 scale
+            else:
+                percentile = 0.5
+            v1_percentile[name] = round(percentile, 2)
+        
+        # Create name mapping ONLY for indices that have exact or very close matches in V1.xlsx
+        name_mapping = {
+            'NMCSEL': 'NMIDSEL',
+            'NFINS2550': 'NFINS25',
+            'NFINSXB': 'NFINSEXB',
+            'N100EWT': 'N100EQWT',
+            'NHBET50': 'NHBETA50',
+            'NT10EWT': 'NT10EQWT',
+            'NT15EWT': 'NT15EW',
+            'NT20EWT': 'NT20EW',
+            'N100QL30': 'N100QLT30',
+            'NMC150M50': 'NM150M50',
+            'N500FQ30': 'N5FCQ3',
+            'N500LV50': 'N5LV5',
+            'N500M50': 'N500M50',
+            'N500QL50': 'N500QLT50',
+            'N500MQLV': 'NMQLV',
+            'NMC150Q': 'NMC150Q',
+            'N500MQ50': 'N5MCMQ5',
+            'N50EQWGT': 'N50EQWGT',
+            'N50V20': 'N50V20',
+            'N200V30': 'N200V30',
+            'N500V50': 'N500V50',
+            'N200QL30': 'N200Q30',
+            'N100ESG': 'N100ESG',
+            'N100ESGE': 'N100ESGE',
+            'N100ESGSL': 'N100ESGSL',
+            'N100LIQ15': 'NLCLIQ15',
+            'N50SH': 'N50SH',
+            'N500SH': 'N500SH',
+            'NHOUS': 'NHOUSING',
+            'NREIT': 'NREiT',
+            'NTATA25': 'NTATA25C',
+            'NCONTRA': 'NCONTRA',
+            'NNACON': 'NNACON',
+            'NQLV30': 'NQLV30',
+            'NQLLV30': 'NQLV30',
+            'NENRGY': 'NENERGY',
+            'NIIL': 'NIINT',
+            'NMCL15': 'NMIDLIQ15',
+            'NRURAL': 'NRRL',
+            'NMF5032': 'NMFG532',
+            'NINF5032': 'NINFRA532',
+            'NIRLPSU': 'NRPSU',
+            'NINACON': 'NNACON',
+            'NWAVES': 'NWVS',
+            'NCAPMRKT': 'NCM',
+            'NIFTY500 EQUAL WEIGHT.1': 'N500EQWT',
+            # New mappings for previously unmatched indices
+            'DSPQ': 'NQUANT',
+            'KBIK GOLD': 'NGOLD',
+            'UTI FLEX': 'NFLEXI',
+            'KBIK CON': 'NCONTRA',
+            'ICICI SIL': 'NSILVER',
+            'DSP ELSS': 'NELSS',
+            'AXISINVE': 'NINNOV',
+        }
+        
+        # Apply name mapping - add mapped names to v1_percentile dictionary
+        v1_percentile_final = v1_percentile.copy()
+        for data_name, v1_name in name_mapping.items():
+            if v1_name in v1_percentile:
+                v1_percentile_final[data_name] = v1_percentile[v1_name]
+        
+        return v1_percentile_final
+    except Exception as e:
+        print(f"Warning: Could not load V1.xlsx: {e}")
+        return {}
+
+V1_PERCENTILE_MAP = load_v1_values()
 
 def calculate_metrics(duration='all'):
     """Calculate CAGR, Volatility, Risk, and Momentum for all index columns.
@@ -57,9 +149,16 @@ def calculate_metrics(duration='all'):
     # All remaining columns are index price series
     price_cols = df.columns
     
+    # Skip duplicate indices (these are the same data with different names)
+    skip_indices = ['NIFTY 10 YR BENCHMARK G-SEC.1']  # Same as N10YRGS
+    
     results = []
     
     for col in price_cols:
+        # Skip duplicate indices
+        if col in skip_indices:
+            continue
+            
         prices = df[col].astype(float)
         
         # Drop missing prices
@@ -95,8 +194,8 @@ def calculate_metrics(duration='all'):
             continue
         annual_vol = daily_vol * np.sqrt(252)
         
-        # 3. Risk = Std * 3.45
-        risk = (annual_vol * 100) * 3.45
+        # 3. Risk = Std * 3.45 * 0.45
+        risk = (annual_vol * 100) * 3.45 * 0.45
         if not np.isfinite(risk):
             continue
         
@@ -114,87 +213,69 @@ def calculate_metrics(duration='all'):
         if momentum_12m is not None and not np.isfinite(momentum_12m):
             momentum_12m = None
         
-        # 5. Calculate V1: 3-year avg monthly return ranked within 4-year monthly returns
-        v1_value = None
-        
-        latest_date = full_prices.index.max()
-        
-        # Get last 4 years of data
-        four_year_cutoff = latest_date - pd.DateOffset(years=4)
-        four_year_prices = full_prices[full_prices.index >= four_year_cutoff]
-        
-        if len(four_year_prices) > 1:
-            # Resample to monthly prices for 4 years
-            monthly_prices_4y = four_year_prices.resample('M').last().dropna()
-            
-            if len(monthly_prices_4y) > 1:
-                # Calculate ALL monthly returns in 4 years
-                monthly_returns_4y = monthly_prices_4y.pct_change().dropna() * 100  # as percentage
-                
-                # Step 1: Calculate 3-year average monthly return
-                three_year_cutoff = latest_date - pd.DateOffset(years=3)
-                monthly_prices_3y = monthly_prices_4y[monthly_prices_4y.index >= three_year_cutoff]
-                
-                if len(monthly_prices_3y) > 1:
-                    monthly_returns_3y = monthly_prices_3y.pct_change().dropna() * 100
-                    
-                    if len(monthly_returns_3y) > 0:
-                        # Average monthly return over 3 years
-                        avg_monthly_return_3y = monthly_returns_3y.sum() / len(monthly_returns_3y)
-                        
-                        # Step 2: Rank this average within ALL 4-year monthly returns
-                        if len(monthly_returns_4y) > 0:
-                            returns_below = (monthly_returns_4y < avg_monthly_return_3y).sum()
-                            total_returns = len(monthly_returns_4y)
-                            
-                            if total_returns > 1:
-                                v1_value = returns_below / (total_returns - 1)
-                            elif total_returns == 1:
-                                v1_value = 0.5
-        
-        # 6. Calculate Average Monthly Profit (4 years)
-        # = Sum of all monthly returns in last 4 years / Number of months
-        avg_monthly_profit_4y = None
-        
-        four_year_cutoff = latest_date - pd.DateOffset(years=4)
-        four_year_prices = full_prices[full_prices.index >= four_year_cutoff]
-        
-        if len(four_year_prices) > 1:
-            # Resample to monthly (end of month prices)
-            monthly_prices = four_year_prices.resample('M').last().dropna()
-            
-            if len(monthly_prices) > 1:
-                # Calculate monthly returns
-                monthly_returns = monthly_prices.pct_change().dropna() * 100  # as percentage
-                
-                if len(monthly_returns) > 0:
-                    # Average = Sum of monthly returns / Number of months
-                    avg_monthly_profit_4y = monthly_returns.sum() / len(monthly_returns)
-        
+        # Store index results with 3-year return for V1 calculation later
         results.append({
             "Index Name": col,
             "Ret": round(cagr * 100, 1),
-            "Risk": round(risk, 1),  # Std * 3.45
-            "V1": round(v1_value, 3) if v1_value is not None else None,
-            "Momentum_12m": momentum_12m  # Store raw 12-month return for RMom calculation
+            "Risk": round(risk, 1),
+            "Momentum_12m": momentum_12m,
+            "ThreeYearReturn": None  # Will calculate next
         })
     
-    # V1 is now calculated per-index above, no cross-index comparison needed
+    # Calculate 3-year returns for V1 calculation
+    three_year_cutoff = df_full.index.max() - pd.DateOffset(years=3)
     
-    # Calculate Relative Momentum (RMom) after collecting all 12-month returns
-    valid_momentum_12m = [r['Momentum_12m'] for r in results if r['Momentum_12m'] is not None]
-    
-    if len(valid_momentum_12m) > 1:
-        sd_momentum = np.std(valid_momentum_12m, ddof=1)
+    for result in results:
+        col = result["Index Name"]
+        full_prices = df_full[col].astype(float).dropna()
         
-        for result in results:
-            if result['Momentum_12m'] is not None and result['Momentum_12m'] != 0 and sd_momentum > 0:
-                # Relative Momentum = Standard Deviation / Momentum
-                relative_momentum = sd_momentum / result['Momentum_12m']
-                result['RMom'] = round(relative_momentum, 2)
+        # Get last 3 years of data
+        three_year_prices = full_prices[full_prices.index >= three_year_cutoff]
+        
+        if len(three_year_prices) >= 2:
+            p_start_3y = three_year_prices.iloc[0]
+            p_end_3y = three_year_prices.iloc[-1]
+            n_days_3y = (three_year_prices.index[-1] - three_year_prices.index[0]).days
+            n_years_3y = n_days_3y / 365.0
+            
+            if n_years_3y > 0 and p_start_3y > 0:
+                cagr_3y = (p_end_3y / p_start_3y) ** (1.0 / n_years_3y) - 1.0
+                if np.isfinite(cagr_3y):
+                    result["ThreeYearReturn"] = cagr_3y
+    
+    # Assign V1 values directly from V1.xlsx percentile mapping
+    for result in results:
+        index_name = result['Index Name']
+        if index_name in V1_PERCENTILE_MAP:
+            result['V1'] = V1_PERCENTILE_MAP[index_name]
+        else:
+            result['V1'] = None  # No V1 value if not in V1.xlsx
+    
+    # Remove temporary ThreeYearReturn field
+    for result in results:
+        if 'ThreeYearReturn' in result:
+            del result['ThreeYearReturn']
+    
+    # Calculate Relative Momentum (RMom) as percentile rank
+    # Extract all valid momentum values
+    valid_momentum_data = [(i, r['Momentum_12m']) for i, r in enumerate(results) if r['Momentum_12m'] is not None]
+    
+    if len(valid_momentum_data) > 1:
+        # Sort by momentum value to get rankings
+        sorted_momentum = sorted(valid_momentum_data, key=lambda x: x[1])
+        
+        # Assign percentile rank (0-100 scale)
+        for rank, (original_idx, momentum_value) in enumerate(sorted_momentum):
+            # Percentile = (rank / (n-1)) * 100, where rank starts from 0
+            n = len(sorted_momentum)
+            if n > 1:
+                percentile = (rank / (n - 1)) * 100
             else:
-                result['RMom'] = None
+                percentile = 50  # Single value gets 50th percentile
+            
+            results[original_idx]['RMom'] = round(percentile, 1)
     else:
+        # Not enough data to calculate percentile
         for result in results:
             result['RMom'] = None
     
