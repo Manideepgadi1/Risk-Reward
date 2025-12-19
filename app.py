@@ -43,7 +43,7 @@ def load_v1_values():
                 percentile = rank / (n - 1)  # 0 to 1 scale
             else:
                 percentile = 0.5
-            v1_percentile[name] = round(percentile, 2)
+            v1_percentile[name] = round(1 - percentile, 2)  # Inverted: 1 - percentile
         
         # Create name mapping ONLY for indices that have exact or very close matches in V1.xlsx
         name_mapping = {
