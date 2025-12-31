@@ -8,20 +8,29 @@ import os
 class RiskRewardAPI:
     """API class for calculating risk-reward metrics for stock indices"""
     
-    def __init__(self, csv_path=None):
+    def __init__(self, csv_path=None, excel_path=None):
         """
         Initialize the API with data file path
         
         Args:
             csv_path: Path to CSV file with price data. If None, uses default data.csv
+            excel_path: Path to Excel file with V1 values. If None, uses default heatmap values.xlsx
         """
         if csv_path is None:
             # Use package's default data file
             package_dir = os.path.dirname(os.path.abspath(__file__))
             csv_path = os.path.join(package_dir, 'data.csv')
         
+        if excel_path is None:
+            # Use default Excel file in parent directory
+            package_dir = os.path.dirname(os.path.abspath(__file__))
+            excel_path = os.path.join(os.path.dirname(package_dir), 'heatmap values.xlsx')
+        
         self.csv_path = csv_path
+        self.excel_path = excel_path
         self._df = None
+        self._v1_df = None
+        self._load_v1_values()
     
     def load_data(self):
         """Load and prepare data from CSV"""
@@ -36,6 +45,43 @@ class RiskRewardAPI:
             self._df = self._df.set_index("DATE")
         
         return self._df
+    
+    def _load_v1_values(self):
+        """Load V1 (percentile) values from Excel file"""
+        try:
+            # Load mapping
+            import sys
+            mapping_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'index_name_mapping.py')
+            if os.path.exists(mapping_path):
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("index_name_mapping", mapping_path)
+                mapping_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mapping_module)
+                fullname_to_column = mapping_module.FULLNAME_TO_COLUMN
+                column_to_fullname = mapping_module.COLUMN_TO_FULLNAME
+            else:
+                fullname_to_column = {}
+                column_to_fullname = {}
+            
+            self._v1_df = pd.read_excel(self.excel_path)
+            # Create mapping from CSV column name (short code) to Percentile Value and Full Name
+            self._v1_map = {}
+            self._fullname_map = {}
+            
+            for idx, row in self._v1_df.iterrows():
+                full_name = row['Full Name']
+                percentile = row['Percentile Value']
+                
+                # Try to map full name to column name
+                column_name = fullname_to_column.get(full_name, full_name)
+                
+                self._v1_map[column_name] = round(percentile, 2)
+                self._fullname_map[column_name] = full_name
+                
+        except Exception as e:
+            print(f"Warning: Could not load V1 values from Excel: {e}")
+            self._v1_map = {}
+            self._fullname_map = {}
     
     def get_metrics(self, duration='all', indices=None):
         """
@@ -158,16 +204,16 @@ class RiskRewardAPI:
                 "Momentum_12m": momentum_12m
             })
         
-        # Calculate V1 (rank percentile)
-        valid_cumulative_5y = [(i, r['Cumulative_5y']) for i, r in enumerate(results) if r['Cumulative_5y'] is not None]
-        
+        # Get V1 values from Excel file and add full names
         for result in results:
-            if result['Cumulative_5y'] is not None and len(valid_cumulative_5y) > 0:
-                count_lower = sum(1 for _, val in valid_cumulative_5y if val < result['Cumulative_5y'])
-                rank_percentile = (count_lower / len(valid_cumulative_5y)) * 100
-                result['V1'] = round(rank_percentile / 100, 3)
-            else:
-                result['V1'] = None
+            index_name = result['Index Name']
+            # Get V1 from Excel mapping
+            result['V1'] = self._v1_map.get(index_name, None)
+            if result['V1'] is not None:
+                result['V1'] = round(result['V1'], 3)
+            
+            # Add full display name
+            result['Full Name'] = self._fullname_map.get(index_name, index_name)
             
             del result['Cumulative_5y']
         

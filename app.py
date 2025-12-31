@@ -23,93 +23,29 @@ app.wsgi_app = PrefixMiddleware(app.wsgi_app)
 # Use relative path for production deployment
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, "data.csv")
-V1_XLSX_PATH = os.path.join(BASE_DIR, "V1.xlsx")
+V1_XLSX_PATH = os.path.join(BASE_DIR, "heatmap values.xlsx")
 
 # Load V1 values from Excel at startup
 def load_v1_values():
-    """Load V1 average values from V1.xlsx and calculate percentile ranks"""
+    """Load V1 average values from heatmap values.xlsx"""
     try:
         df_v1 = pd.read_excel(V1_XLSX_PATH)
-        # Create a dictionary of index name to AverageValue
-        v1_dict = dict(zip(df_v1['Name'], df_v1['AverageValue']))
+        # Create a dictionary of Full Name to Percentile Value
+        v1_percentile = dict(zip(df_v1['Full Name'], df_v1['Percentile Value']))
         
-        # Calculate percentile ranks based on AverageValue
-        sorted_values = sorted(v1_dict.items(), key=lambda x: x[1])
-        n = len(sorted_values)
-        
-        v1_percentile = {}
-        for rank, (name, value) in enumerate(sorted_values):
-            if n > 1:
-                percentile = rank / (n - 1)  # 0 to 1 scale
-            else:
-                percentile = 0.5
-            v1_percentile[name] = round(percentile, 2)
-        
-        # Create name mapping ONLY for indices that have exact or very close matches in V1.xlsx
-        name_mapping = {
-            'NMCSEL': 'NMIDSEL',
-            'NFINS2550': 'NFINS25',
-            'NFINSXB': 'NFINSEXB',
-            'N100EWT': 'N100EQWT',
-            'NHBET50': 'NHBETA50',
-            'NT10EWT': 'NT10EQWT',
-            'NT15EWT': 'NT15EW',
-            'NT20EWT': 'NT20EW',
-            'N100QL30': 'N100QLT30',
-            'NMC150M50': 'NM150M50',
-            'N500FQ30': 'N5FCQ3',
-            'N500LV50': 'N5LV5',
-            'N500M50': 'N500M50',
-            'N500QL50': 'N500QLT50',
-            'N500MQLV': 'NMQLV',
-            'NMC150Q': 'NMC150Q',
-            'N500MQ50': 'N5MCMQ5',
-            'N50EQWGT': 'N50EQWGT',
-            'N50V20': 'N50V20',
-            'N200V30': 'N200V30',
-            'N500V50': 'N500V50',
-            'N200QL30': 'N200Q30',
-            'N100ESG': 'N100ESG',
-            'N100ESGE': 'N100ESGE',
-            'N100ESGSL': 'N100ESGSL',
-            'N100LIQ15': 'NLCLIQ15',
-            'N50SH': 'N50SH',
-            'N500SH': 'N500SH',
-            'NHOUS': 'NHOUSING',
-            'NREIT': 'NREiT',
-            'NTATA25': 'NTATA25C',
-            'NCONTRA': 'NCONTRA',
-            'NNACON': 'NNACON',
-            'NQLV30': 'NQLV30',
-            'NQLLV30': 'NQLV30',
-            'NENRGY': 'NENERGY',
-            'NIIL': 'NIINT',
-            'NMCL15': 'NMIDLIQ15',
-            'NRURAL': 'NRRL',
-            'NMF5032': 'NMFG532',
-            'NINF5032': 'NINFRA532',
-            'NIRLPSU': 'NRPSU',
-            'NINACON': 'NNACON',
-            'NWAVES': 'NWVS',
-            'NCAPMRKT': 'NCM',
-            'NIFTY500 EQUAL WEIGHT.1': 'N500EQWT',
-            # New mappings for previously unmatched indices
-            'DSPQ': 'NQUANT',
-            'KBIK GOLD': 'NGOLD',
-            'UTI FLEX': 'NFLEXI',
-            'KBIK CON': 'NCONTRA',
-            'ICICI SIL': 'NSILVER',
-            'DSP ELSS': 'NELSS',
-            'AXISINVE': 'NINNOV',
-        }
-        
-        # Apply name mapping - add mapped names to v1_percentile dictionary
-        v1_percentile_final = v1_percentile.copy()
-        for data_name, v1_name in name_mapping.items():
-            if v1_name in v1_percentile:
-                v1_percentile_final[data_name] = v1_percentile[v1_name]
-        
-        return v1_percentile_final
+        # Load the name mapping to convert Full Names to CSV column names
+        try:
+            from index_name_mapping import FULLNAME_TO_COLUMN
+            # Convert Full Name -> Column Name dictionary
+            v1_percentile_final = {}
+            for full_name, percentile in v1_percentile.items():
+                column_name = FULLNAME_TO_COLUMN.get(full_name, full_name)
+                v1_percentile_final[column_name] = round(percentile, 2)
+            return v1_percentile_final
+        except ImportError:
+            print("Warning: Could not import index_name_mapping")
+            return v1_percentile
+
     except Exception as e:
         print(f"Warning: Could not load V1.xlsx: {e}")
         return {}
@@ -243,13 +179,22 @@ def calculate_metrics(duration='all'):
                 if np.isfinite(cagr_3y):
                     result["ThreeYearReturn"] = cagr_3y
     
-    # Assign V1 values directly from V1.xlsx percentile mapping
+    # Assign V1 values directly from heatmap values.xlsx percentile mapping
+    # and add Full Names
+    try:
+        from index_name_mapping import COLUMN_TO_FULLNAME
+    except ImportError:
+        COLUMN_TO_FULLNAME = {}
+    
     for result in results:
         index_name = result['Index Name']
         if index_name in V1_PERCENTILE_MAP:
             result['V1'] = V1_PERCENTILE_MAP[index_name]
         else:
-            result['V1'] = None  # No V1 value if not in V1.xlsx
+            result['V1'] = None  # No V1 value if not in heatmap values.xlsx
+        
+        # Add Full Name
+        result['Full Name'] = COLUMN_TO_FULLNAME.get(index_name, index_name)
     
     # Remove temporary ThreeYearReturn field
     for result in results:

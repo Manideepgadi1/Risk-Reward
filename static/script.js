@@ -77,8 +77,10 @@ function renderTable(data) {
                 
                 const nameCell = document.createElement('div');
                 nameCell.className = 'index-name-cell';
-                nameCell.textContent = indexName;
-                nameCell.title = indexName;
+                // Display Full Name if available, otherwise use Index Name
+                const displayName = item['Full Name'] || indexName;
+                nameCell.textContent = displayName;
+                nameCell.title = displayName;
                 nameCell.onclick = () => showDetails(item);
                 
                 const metricsGrid = document.createElement('div');
